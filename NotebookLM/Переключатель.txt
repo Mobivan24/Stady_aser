@@ -1,0 +1,45 @@
+Creating an account switcher script for NotebookLM. First checking capabilities of `notebooklm-mcp` and `notebooklm-py`.
+
+Ran command: `C:\Users\user\AppData\Roaming\Python\Python314\Scripts\notebooklm-mcp-auth.exe --help`
+Viewed implementation_plan.md:1-24
+
+Analyzed approaches to run multiple NotebookLM accounts. Decided on a generic folder-swapping script (`switch_account.py`) that operates on the `~/.notebooklm` and `~/.notebooklm-mcp` directories.
+
+Edited switch_account.py
+
+Wrote the [switch_account.py](cci:7://file:///d:/Programing/NotebookLM/switch_account.py:0:0-0:0) script to disk. Testing its functionality to ensure it safely backs up and restores the `.notebooklm` and `.notebooklm-mcp` profile directories.
+
+Ran command: `python switch_account.py work`
+
+Created the switch_account.py python file. Now testing the script in the prompt to ensure it works correctly before alerting the user.
+
+Ran [switch_account.py](cci:7://file:///d:/Programing/NotebookLM/switch_account.py:0:0-0:0) but encountered a `UnicodeEncodeError` due to console encoding on Windows. Removing unicode emojis from the script and restoring the default profile.
+
+Edited switch_account.py
+
+Successfully tested [switch_account.py](cci:7://file:///d:/Programing/NotebookLM/switch_account.py:0:0-0:0). It correctly switches and restores default profile directories. Now updating documentation and finalizing.
+
+Viewed task.md:1-8
+Viewed walkthrough.md:1-30
+
+Successfully tested [switch_account.py](cci:7://file:///d:/Programing/NotebookLM/switch_account.py:0:0-0:0). It correctly switches and restores default profile directories. Now updating documentation and finalizing.
+
+Edited task.md
+Edited walkthrough.md
+
+Я создал скрипт для удобного переключения между аккаунтами! 🔄
+
+Файл сохранен здесь: `d:\Programing\NotebookLM\switch_account.py`
+
+**Как им пользоваться:**
+
+Для переключения на рабочий или дополнительный аккаунт:
+`python switch_account.py work` (вместо `work` можно написать любое имя профиля)
+
+Для возврата обратно на основной аккаунт:
+`python switch_account.py default`
+
+**Важные примечания:**
+1. При первом переключении на новый профиль вы не будете в нем авторизованы. Сначала нужно выполнить команду `notebooklm login` в терминале и залогиниться.
+2. При **любом** переключении профиля (даже на существующий) обязательно перезапускайте AntiGravity / ваш ИИ Ассистент (или завершайте и начинайте новую сессию чата), чтобы сервер MCP подхватил новые токены, а не использовал старые из памяти.
+3. Документация также обновлена в нашем итоговом `walkthrough.md`.
