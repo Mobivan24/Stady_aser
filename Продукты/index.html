@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Редактор запасов продуктов</title>
+  <style>
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+    th, td {
+      border: 1px solid #999;
+      padding: 8px;
+    }
+    th {
+      background-color: #eee;
+    }
+    input, select {
+      width: 100%;
+    }
+    button {
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Редактор запасов продуктов</h2>
+  <table id="productTable">
+    <thead>
+      <tr>
+        <th>Название</th>
+        <th>Количество</th>
+        <th>Ед. изм.</th>
+        <th>Категория</th>
+        <th>Удалить</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- Строки будут добавлены через JS -->
+    </tbody>
+  </table>
+
+  <button onclick="addRow()">Добавить продукт</button>
+  <button onclick="saveJSON()">Сохранить</button>
+  <button onclick="downloadJSON()">Скачать JSON</button>
+
+  <pre id="output" style="background:#f0f0f0; padding:10px; margin-top:20px;"></pre>
+
+  <script>
+    const data = {
+      "products": [
+        { "name": "картофель", "quantity": 2.5, "unit": "кг", "category": "овощи" },
+        { "name": "морковь", "quantity": 1.0, "unit": "кг", "category": "овощи" },
+        { "name": "лук репчатый", "quantity": 0.5, "unit": "кг", "category": "овощи" },
+        { "name": "куриное филе", "quantity": 1.2, "unit": "кг", "category": "мясо" },
+        { "name": "сливочное масло", "quantity": 200, "unit": "г", "category": "масла и жиры" },
+        { "name": "мука пшеничная", "quantity": 1.0, "unit": "кг", "category": "крупы и мука" },
+        { "name": "сахар", "quantity": 0.5, "unit": "кг", "category": "сахар и соль" },
+        { "name": "соль", "quantity": 0.3, "unit": "кг", "category": "сахар и соль" },
+        { "name": "черный перец молотый", "quantity": 50, "unit": "г", "category": "специи" },
+        { "name": "яйца куриные", "quantity": 10, "unit": "шт", "category": "яйца" }
+      ]
+    };
+
+    function renderTable() {
+      const tbody = document.querySelector("#productTable tbody");
+      tbody.innerHTML = "";
+
+      data.products.forEach((product, index) => {
+        const row = document.createElement("tr");
+
+        row.innerHTML = `
+          <td><input type="text" value="${product.name}" onchange="updateProduct(${index}, 'name', this.value)"></td>
+          <td><input type="number" value="${product.quantity}" step="any" onchange="updateProduct(${index}, 'quantity', parseFloat(this.value))"></td>
+          <td><input type="text" value="${product.unit}" onchange="updateProduct(${index}, 'unit', this.value)"></td>
+          <td><input type="text" value="${product.category}" onchange="updateProduct(${index}, 'category', this.value)"></td>
+          <td><button onclick="deleteRow(${index})">❌</button></td>
+        `;
+
+        tbody.appendChild(row);
+      });
+    }
+
+    function updateProduct(index, key, value) {
+      data.products[index][key] = value;
+    }
+
+    function addRow() {
+      data.products.push({
+        name: "",
+        quantity: 0,
+        unit: "",
+        category: ""
+      });
+      renderTable();
+    }
+
+    function deleteRow(index) {
+      data.products.splice(index, 1);
+      renderTable();
+    }
+
+    function saveJSON() {
+      const output = document.getElementById("output");
+      output.textContent = JSON.stringify(data, null, 2);
+    }
+
+    function downloadJSON() {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "Продукты.json";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+    // Первичная отрисовка
+    renderTable();
+  </script>
+
+</body>
+</html>
