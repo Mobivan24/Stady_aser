@@ -26,10 +26,10 @@ def main():
         current_profile = profile_marker.read_text().strip()
     
     if current_profile == target_profile:
-        print(f"[*] Вы уже используете профиль '{target_profile}'.")
+        print(f"[*] Profile '{target_profile}' is already active.")
         sys.exit(0)
     
-    print(f"[*] Смена профиля: {current_profile} -> {target_profile}")
+    print(f"[*] Switching profile: {current_profile} -> {target_profile}")
     
     # 1. Back up current profile directories
     nl_py_backup = root_dir / f".notebooklm_{current_profile}"
@@ -39,13 +39,13 @@ def main():
         if nl_py_backup.exists():
             shutil.rmtree(nl_py_backup)
         nl_py_path.rename(nl_py_backup)
-        print(f"  [+] Сохранен {current_profile} (.notebooklm)")
+        print(f"  [+] Saved {current_profile} (.notebooklm)")
         
     if nl_mcp_path.exists():
         if nl_mcp_backup.exists():
             shutil.rmtree(nl_mcp_backup)
         nl_mcp_path.rename(nl_mcp_backup)
-        print(f"  [+] Сохранен {current_profile} (.notebooklm-mcp)")
+        print(f"  [+] Saved {current_profile} (.notebooklm-mcp)")
 
     # 2. Restore or create target profile directories
     nl_py_restore = root_dir / f".notebooklm_{target_profile}"
@@ -53,33 +53,33 @@ def main():
     
     if nl_py_restore.exists():
         nl_py_restore.rename(nl_py_path)
-        print(f"  [+] Загружен {target_profile} (.notebooklm)")
+        print(f"  [+] Loaded {target_profile} (.notebooklm)")
     else:
         nl_py_path.mkdir(parents=True, exist_ok=True)
-        print(f"  [+] Создан пустой профиль {target_profile} (.notebooklm)")
+        print(f"  [+] Created empty profile {target_profile} (.notebooklm)")
         
     if nl_mcp_restore.exists():
         nl_mcp_restore.rename(nl_mcp_path)
-        print(f"  [+] Загружен {target_profile} (.notebooklm-mcp)")
+        print(f"  [+] Loaded {target_profile} (.notebooklm-mcp)")
     else:
         nl_mcp_path.mkdir(parents=True, exist_ok=True)
-        print(f"  [+] Создан пустой профиль {target_profile} (.notebooklm-mcp)")
+        print(f"  [+] Created empty profile {target_profile} (.notebooklm-mcp)")
 
     # 3. Write marker for future runs
     profile_marker.write_text(target_profile)
     
-    print(f"\n[OK] Профиль успешно изменен на '{target_profile}'.")
+    print(f"\n[OK] Profile changed to '{target_profile}'.")
     
     # Check if this profile needs authentication (if storage_state.json is missing in .notebooklm)
     needs_auth = not (nl_py_path / "storage_state.json").exists()
     
     if needs_auth:
-        print(f"\n[!] ВНИМАНИЕ: Это новый профиль! Вам нужно авторизоваться:")
-        print("   1. Выполните команду 'notebooklm login' и зайдите в новый аккаунт.")
-        print("   2. Перезапустите AntiGravity/сервер после этого.")
+        print(f"\n[!] WARNING: New profile! Authentication required:")
+        print("   1. Run 'notebooklm login' and sign into your account.")
+        print("   2. Restart AntiGravity/server after this.")
     else:
-        print(f"\n[!] ВАЖНО: Вы переключились на существующий профиль.")
-        print("   Обязательно ПЕРЕЗАПУСТИТЕ AntiGravity чтобы MCP сервер подхватил новые учетные данные!")
+        print(f"\n[!] IMPORTANT: Profile switched.")
+        print("   RESTART AntiGravity to pick up new tokens!")
 
 if __name__ == "__main__":
     main()
