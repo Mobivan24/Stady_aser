@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "defaults": {
+    "requireConfirmation": true,
+    "browser": "default",
+    "cooldownSeconds": 5,
+    "unknownTagAction": "deny"
+  },
+  "tags": [
+    {
+      "id": "test-02-example",
+      "name": "TEST-02 — Example Domain",
+      "enabled": false,
+      "uid": null,
+      "allowedUrls": [
+        "https://example.com"
+      ],
+      "allowedUrlPrefixes": [],
+      "action": "open_browser",
+      "browser": "default",
+      "requireConfirmation": true,
+      "notes": "Тестовая метка URL. Впишите свой UID и включите enabled=true после первого сканирования в dry-run.",
+      "createdAt": "2026-09-22T18:00:00+03:00",
+      "updatedAt": "2026-09-22T18:00:00+03:00"
+    }
+  ]
+}
