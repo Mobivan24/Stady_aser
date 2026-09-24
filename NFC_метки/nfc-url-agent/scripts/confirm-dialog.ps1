@@ -1,32 +1,41 @@
 <#
-  Показывает нативное окно подтверждения Windows с кнопками OK/Cancel.
-  Используется browser.js для запроса подтверждения перед открытием
-  URL, считанного с разрешённой NFC-метки.
+  Native Windows confirmation dialog (OK/Cancel), always on top.
+  ASCII-only on purpose: all user-visible text comes from Node.js as
+  arguments, so Windows PowerShell 5.1 file encoding cannot break it.
 
-  Код возврата: 0 = пользователь нажал "Открыть" (OK), 1 = "Отмена"
-  либо окно было закрыто иным способом.
+  Exit codes: 0 = OK, 1 = Cancel/closed, 2 = script error.
 #>
 param(
-  [Parameter(Mandatory = $true)][string]$Name,
-  [Parameter(Mandatory = $true)][string]$Url
+  [Parameter(Mandatory = $true)][string]$Title,
+  [Parameter(Mandatory = $true)][string]$Message
 )
 
-Add-Type -AssemblyName System.Windows.Forms
-Add-Type -AssemblyName System.Drawing
+$ErrorActionPreference = 'Stop'
 
-$message = "Обнаружена разрешённая NFC-метка: $Name`r`nURL: $Url"
-$title = "NFC URL Agent — подтверждение"
+try {
+  Add-Type -AssemblyName System.Windows.Forms
 
-$result = [System.Windows.Forms.MessageBox]::Show(
-  $message,
-  $title,
-  [System.Windows.Forms.MessageBoxButtons]::OKCancel,
-  [System.Windows.Forms.MessageBoxIcon]::Question,
-  [System.Windows.Forms.MessageBoxDefaultButton]::Button2
-)
+  $owner = New-Object System.Windows.Forms.Form
+  $owner.TopMost = $true
+  $owner.ShowInTaskbar = $false
 
-if ($result -eq [System.Windows.Forms.DialogResult]::OK) {
-  exit 0
-} else {
-  exit 1
+  $result = [System.Windows.Forms.MessageBox]::Show(
+    $owner,
+    $Message,
+    $Title,
+    [System.Windows.Forms.MessageBoxButtons]::OKCancel,
+    [System.Windows.Forms.MessageBoxIcon]::Question,
+    [System.Windows.Forms.MessageBoxDefaultButton]::Button2
+  )
+
+  $owner.Dispose()
+
+  if ($result -eq [System.Windows.Forms.DialogResult]::OK) {
+    exit 0
+  } else {
+    exit 1
+  }
+} catch {
+  [Console]::Error.WriteLine($_.Exception.Message)
+  exit 2
 }

@@ -6,6 +6,8 @@ const readline = require('readline');
 const { parseUrl, isSchemeAllowed } = require('./url-policy');
 
 const CONFIRM_SCRIPT_PATH = path.join(__dirname, '..', 'scripts', 'confirm-dialog.ps1');
+const CONFIRM_TIMEOUT_MS = 30000;
+const CONFIRM_TITLE = 'NFC URL Agent — подтверждение';
 
 class BrowserOpenError extends Error {}
 
@@ -75,13 +77,24 @@ async function openUrl(rawUrl, browserMode, settings) {
 }
 
 /**
- * Показывает нативное окно подтверждения (Windows MessageBox через
- * PowerShell). Возвращает Promise<boolean> — true если пользователь
- * нажал "Открыть"/OK. При недоступности PowerShell использует резервный
- * консольный y/n prompt, чтобы приложение продолжало работать.
+ * Показывает нативное окно подтверждения поверх всех окон (Windows
+ * MessageBox через PowerShell). Возвращает Promise<{ status, detail? }>:
+ *   confirmed — нажато OK;
+ *   cancelled — нажата «Отмена» или окно закрыто;
+ *   timeout   — нет ответа CONFIRM_TIMEOUT_MS, окно закрыто автоматически;
+ *   error     — сбой скрипта (detail содержит текст ошибки).
+ * Любой статус, кроме confirmed, означает «не открывать» (fail-closed).
  */
 function showConfirmationDialog(name, url) {
   return new Promise((resolve) => {
+    const message = `Обнаружена разрешённая NFC-метка: ${name}\r\nURL: ${url}\r\n\r\nОткрыть?`;
+    let settled = false;
+    const done = (value) => {
+      if (settled) return;
+      settled = true;
+      resolve(value);
+    };
+
     const child = execFile(
       'powershell.exe',
       [
@@ -89,21 +102,36 @@ function showConfirmationDialog(name, url) {
         '-NonInteractive',
         '-ExecutionPolicy', 'Bypass',
         '-File', CONFIRM_SCRIPT_PATH,
-        '-Name', name,
-        '-Url', url
+        '-Title', CONFIRM_TITLE,
+        '-Message', message
       ],
-      (err) => {
-        if (err && err.code === 'ENOENT') {
-          resolve(consoleConfirmFallback(name, url));
+      { timeout: CONFIRM_TIMEOUT_MS, windowsHide: true },
+      (err, _stdout, stderr) => {
+        if (!err) {
+          done({ status: 'confirmed' });
           return;
         }
-        // execFile передаёт ошибку, если процесс завершился с кодом != 0
-        // (наш случай "Cancel" = exit 1) — это не сбой запуска, а отказ.
-        resolve(!err);
+        if (err.code === 'ENOENT') {
+          consoleConfirmFallback(name, url).then(done);
+          return;
+        }
+        if (err.killed) {
+          done({ status: 'timeout' });
+          return;
+        }
+        if (err.code === 1) {
+          done({ status: 'cancelled' });
+          return;
+        }
+        done({ status: 'error', detail: String(stderr || err.message).trim() });
       }
     );
-    child.on('error', () => {
-      resolve(consoleConfirmFallback(name, url));
+    child.on('error', (err) => {
+      if (err && err.code === 'ENOENT') {
+        consoleConfirmFallback(name, url).then(done);
+      } else {
+        done({ status: 'error', detail: err ? err.message : 'unknown error' });
+      }
     });
   });
 }
@@ -115,7 +143,7 @@ function consoleConfirmFallback(name, url) {
       `\nОбнаружена разрешённая NFC-метка: ${name}\nURL: ${url}\nОткрыть? [y/N]: `,
       (answer) => {
         rl.close();
-        resolve(answer.trim().toLowerCase() === 'y');
+        resolve({ status: answer.trim().toLowerCase() === 'y' ? 'confirmed' : 'cancelled' });
       }
     );
   });
@@ -124,5 +152,6 @@ function consoleConfirmFallback(name, url) {
 module.exports = {
   BrowserOpenError,
   openUrl,
-  showConfirmationDialog
+  showConfirmationDialog,
+  CONFIRM_TIMEOUT_MS
 };

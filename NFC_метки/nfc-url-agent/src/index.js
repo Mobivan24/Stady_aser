@@ -8,7 +8,7 @@ const acr122u = require('./acr122u');
 const { parseNdefFromMemory } = require('./ndef-parser');
 const { loadAllowlist, findMatchingEntry, normalizeUid } = require('./allowlist');
 const { assertValidSettings } = require('./config-schema');
-const { openUrl, showConfirmationDialog, BrowserOpenError } = require('./browser');
+const { openUrl, showConfirmationDialog, BrowserOpenError, CONFIRM_TIMEOUT_MS } = require('./browser');
 const { Logger } = require('./logger');
 const ui = require('./ui');
 
@@ -23,6 +23,8 @@ let settings = null;
 let allowlist = null;
 let logger = null;
 let paused = false;
+/** true, пока на экране открыто окно подтверждения — второе не показываем */
+let confirmationPending = false;
 /** cooldownKey ("UID::URL") -> timestamp последнего успешного открытия */
 const cooldownMap = new Map();
 
@@ -207,17 +209,55 @@ async function evaluateAndMaybeOpen({ readerName, normalizedUid, rawUrl }) {
   const requireConfirmation = entry.requireConfirmation !== false;
 
   if (requireConfirmation) {
-    const confirmed = await showConfirmationDialog(entry.name, rawUrl);
-    if (!confirmed) {
-      ui.printStatus('Открытие отменено пользователем.', 'yellow');
+    if (confirmationPending) {
+      ui.printStatus('Уже ожидается подтверждение — повторное прикладывание пропущено.', 'gray');
       logger.log({
         event: 'tag_read',
         reader: readerName,
         uid: redactedUid,
         url: rawUrl,
         rule: entry.id,
-        result: 'cancelled'
+        result: 'confirmation_pending_skipped'
       });
+      return;
+    }
+
+    confirmationPending = true;
+    let confirmation;
+    try {
+      confirmation = await showConfirmationDialog(entry.name, rawUrl);
+    } catch (err) {
+      confirmation = { status: 'error', detail: err.message };
+    } finally {
+      confirmationPending = false;
+    }
+
+    if (confirmation.status !== 'confirmed') {
+      const timeoutSec = Math.round(CONFIRM_TIMEOUT_MS / 1000);
+      const messages = {
+        cancelled: 'Открытие отменено пользователем.',
+        timeout: `Нет ответа ${timeoutSec} с — открытие отменено автоматически.`,
+        error: `Ошибка окна подтверждения: ${confirmation.detail}. Ссылка не открыта.`
+      };
+      const results = {
+        cancelled: 'cancelled',
+        timeout: 'confirm_timeout',
+        error: 'confirm_error'
+      };
+      ui.printStatus(
+        messages[confirmation.status] || messages.error,
+        confirmation.status === 'error' ? 'red' : 'yellow'
+      );
+      const logEntry = {
+        event: 'tag_read',
+        reader: readerName,
+        uid: redactedUid,
+        url: rawUrl,
+        rule: entry.id,
+        result: results[confirmation.status] || 'confirm_error'
+      };
+      if (confirmation.detail) logEntry.error = confirmation.detail;
+      logger.log(logEntry);
       return;
     }
   }
