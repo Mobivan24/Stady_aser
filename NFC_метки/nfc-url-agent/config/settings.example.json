@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "mode": "confirm",
+  "dryRun": true,
+  "logFullUid": false,
+  "allowHttpLocal": false,
+  "pollIntervalMs": 500,
+  "configWatch": true,
+  "browsers": {
+    "chrome": "",
+    "edge": "",
+    "comet": ""
+  }
+}
